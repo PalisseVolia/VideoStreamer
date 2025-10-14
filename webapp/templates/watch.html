@@ -1,24 +1,43 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1 class="mb-3">{{ filename }}</h1>
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      {% for label, link in breadcrumbs %}
-        {% if loop.last %}
-          <li class="breadcrumb-item active" aria-current="page">{{ label }}</li>
-        {% else %}
-          <li class="breadcrumb-item"><a href="{{ link }}">{{ label }}</a></li>
-        {% endif %}
-      {% endfor %}
-    </ol>
-  </nav>
-  <div class="ratio ratio-16x9 mb-3">
-    <video controls preload="metadata" poster="" class="w-100 h-100">
-      <source src="{{ url_for('video_stream', subpath=video_path) }}" type="{{ mimetype }}" />
-      Your browser does not support the video tag.
-    </video>
+  <section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-3">
+      <div>
+        <p class="subtitle text-uppercase mb-2">Now Playing</p>
+        <h1 class="page-title mb-2">{{ display_name }}</h1>
+        <p class="page-lead mb-0 text-muted">Enjoy the stream and scrub seamlessly across the timeline.</p>
+      </div>
+      <nav aria-label="breadcrumb" class="flex-shrink-0">
+        <ol class="breadcrumb mb-0">
+          {% for label, link in breadcrumbs %}
+            {% if loop.last %}
+              <li class="breadcrumb-item active" aria-current="page">{{ label }}</li>
+            {% else %}
+              <li class="breadcrumb-item"><a href="{{ link }}">{{ label }}</a></li>
+            {% endif %}
+          {% endfor %}
+        </ol>
+      </nav>
+    </div>
+  </section>
+
+  <div class="watch-card card shadow-sm mb-4">
+    <div class="ratio ratio-16x9 card-img-top">
+      <video controls preload="metadata" playsinline class="video-player">
+        <source src="{{ url_for('video_stream', subpath=video_path) }}" type="{{ mimetype }}" />
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
+      <div class="text-muted small">File name: {{ filename }}</div>
+      <div class="btn-group">
+        <a class="btn btn-outline-light" href="{{ url_for('browse', subpath='/'.join(video_path.split('/')[:-1])) }}">
+          <i class="bi bi-arrow-left"></i> Back to folder
+        </a>
+        <a class="btn btn-primary" href="{{ url_for('video_stream', subpath=video_path) }}" download>
+          <i class="bi bi-download"></i> Download
+        </a>
+      </div>
+    </div>
   </div>
-  <a class="btn btn-outline-secondary" href="{{ url_for('browse', subpath='/'.join(video_path.split('/')[:-1])) }}">
-    <i class="bi bi-arrow-left"></i> Back to folder
-  </a>
 {% endblock %}
