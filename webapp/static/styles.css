@@ -10,6 +10,7 @@
   --text-primary: #f4f7fb;
   --text-muted: #98a3b7;
   --shadow-color: rgba(9, 17, 34, 0.45);
+  --bs-card-title-color: azure;
 }
 
 .app-body {
