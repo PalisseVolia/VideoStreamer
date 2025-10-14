@@ -63,11 +63,6 @@ main {
   color: var(--text-muted) !important;
 }
 
-/* Ensure video card titles remain highly readable against dark backgrounds */
-.video-card .card-title {
-  color: var(--text-primary);
-}
-
 .breadcrumb {
   background: transparent;
   margin-bottom: 0;
