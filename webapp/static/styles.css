@@ -63,6 +63,11 @@ main {
   color: var(--text-muted) !important;
 }
 
+/* Make card titles brighter (azure-like) */
+.card .card-title {
+  color: var(--app-accent);
+}
+
 .breadcrumb {
   background: transparent;
   margin-bottom: 0;
