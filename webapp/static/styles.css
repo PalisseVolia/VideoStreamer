@@ -27,6 +27,10 @@
   min-height: 100vh;
 }
 
+.video-card {
+  color: var(--text-primary);
+}
+
 .app-navbar {
   background: rgba(15, 19, 30, 0.85);
   border-bottom: 1px solid var(--app-border);
