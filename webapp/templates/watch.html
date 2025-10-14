@@ -22,12 +22,8 @@
   </section>
 
   <div class="watch-card card shadow-sm mb-4">
-    <div class="ratio ratio-16x9 card-img-top watch-player-wrapper">
-      <div class="video-player-placeholder" role="status" aria-live="polite">
-        <div class="spinner-border" role="status"></div>
-        <p class="placeholder-text mb-0">Preparing video…</p>
-      </div>
-      <video controls preload="metadata" playsinline class="video-player" data-player>
+    <div class="ratio ratio-16x9 card-img-top">
+      <video controls preload="metadata" playsinline class="video-player">
         <source src="{{ url_for('video_stream', subpath=video_path) }}" type="{{ mimetype }}" />
         Your browser does not support the video tag.
       </video>

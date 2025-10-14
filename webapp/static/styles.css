@@ -228,57 +228,12 @@ main {
   color: rgba(255, 255, 255, 0.35);
 }
 
-.watch-player-wrapper {
-  position: relative;
-}
-
-.watch-player-wrapper > * {
-  position: absolute;
-  inset: 0;
-}
-
 .video-player {
   width: 100%;
   height: 100%;
   background: #000;
   border-top-left-radius: 1rem;
   border-top-right-radius: 1rem;
-  opacity: 0;
-  transition: opacity 220ms ease;
-  z-index: 1;
-}
-
-.video-player.is-ready {
-  opacity: 1;
-}
-
-.video-player-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  background: linear-gradient(135deg, rgba(91, 141, 239, 0.14), rgba(8, 11, 20, 0.9));
-  border-top-left-radius: 1rem;
-  border-top-right-radius: 1rem;
-  color: rgba(244, 247, 251, 0.82);
-  transition: opacity 220ms ease;
-  z-index: 2;
-}
-
-.video-player-placeholder.has-error {
-  background: linear-gradient(135deg, rgba(230, 83, 126, 0.22), rgba(26, 8, 17, 0.92));
-}
-
-.video-player-placeholder .spinner-border {
-  width: 3rem;
-  height: 3rem;
-  border-width: 0.35rem;
-}
-
-.video-player-placeholder.is-hidden {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .watch-card .card-body {
