@@ -6,61 +6,30 @@
     return;
   }
 
-  const MAX_ACTIVE_LOADS = 2;
-  let activeLoads = 0;
-  const pendingLoads = [];
-
-  const startNext = () => {
-    if (activeLoads >= MAX_ACTIVE_LOADS) {
-      return;
-    }
-    const next = pendingLoads.shift();
-    if (!next) {
-      return;
-    }
-    activeLoads += 1;
-    next();
-  };
-
-  const finishLoad = (video, success) => {
-    if (video.dataset.loadingState !== 'active' && video.dataset.loadingState !== 'pending') {
-      return;
-    }
-    video.dataset.loadingState = success ? 'done' : 'idle';
-    if (success) {
-      video.dataset.loaded = 'true';
-    }
-    if (activeLoads > 0) {
-      activeLoads -= 1;
-    }
-    startNext();
-  };
-
   const loadVideo = (video) => {
-    if (video.dataset.loaded === 'true' || video.dataset.loadingState === 'active' || video.dataset.loadingState === 'pending') {
+    if (video.dataset.loaded === 'true') {
       return;
     }
+    const source = document.createElement('source');
+    source.src = video.dataset.videoSrc;
+    const type = video.dataset.videoType;
+    if (type) {
+      source.type = type;
+    }
+    video.appendChild(source);
+    video.dataset.loaded = 'true';
+    video.load();
+  };
 
-    const begin = () => {
-      video.dataset.loadingState = 'active';
-      const source = document.createElement('source');
-      source.src = video.dataset.videoSrc;
-      const type = video.dataset.videoType;
-      if (type) {
-        source.type = type;
-      }
-      video.appendChild(source);
-      video.load();
-    };
-
-    if (activeLoads >= MAX_ACTIVE_LOADS) {
-      video.dataset.loadingState = 'pending';
-      pendingLoads.push(begin);
+  const prepareFrame = (video) => {
+    const previewSecond = parseFloat(video.dataset.previewSecond || '1');
+    if (!Number.isFinite(previewSecond)) {
       return;
     }
-
-    activeLoads += 1;
-    begin();
+    const seekTime = Math.min(Math.max(previewSecond, 0), video.duration || previewSecond);
+    if (seekTime > 0 && video.currentTime !== seekTime) {
+      video.currentTime = seekTime;
+    }
   };
 
   const markReady = (video) => {
@@ -76,25 +45,25 @@
   };
 
   const attachVideoEvents = (video) => {
-    video.addEventListener(
-      'loadedmetadata',
-      () => {
+    video.addEventListener('loadedmetadata', () => {
+      prepareFrame(video);
+    });
+
+    video.addEventListener('loadeddata', () => {
+      if (!video.classList.contains('is-ready')) {
         markReady(video);
-        finishLoad(video, true);
+      }
+    });
+
+    video.addEventListener(
+      'seeked',
+      () => {
+        if (!video.classList.contains('is-ready')) {
+          markReady(video);
+        }
       },
       { once: true }
     );
-
-    video.addEventListener('loadeddata', () => {
-      markReady(video);
-    });
-
-    const handleError = () => {
-      finishLoad(video, false);
-    };
-    video.addEventListener('error', handleError, { once: true });
-    video.addEventListener('stalled', handleError, { once: true });
-    video.addEventListener('abort', handleError, { once: true });
 
     const togglePlayback = (playing) => {
       if (!video.classList.contains('is-ready')) {
@@ -104,13 +73,6 @@
         video.play().catch(() => {});
       } else {
         video.pause();
-        if (video.currentTime && video.currentTime > 0.1) {
-          try {
-            video.currentTime = 0;
-          } catch (err) {
-            /* noop */
-          }
-        }
       }
     };
 

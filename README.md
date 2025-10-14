@@ -53,3 +53,44 @@ Once the reverse proxy is handling HTTPS and authentication, keep running the Fl
 
 * Only files detected as video types (based on MIME type) are listed.
 * If you add new files while the server is running, refresh the page to see them.
+
+
+
+
+
+## General hosting
+```bash
+gunicorn -w 2 -b 127.0.0.1:5000 webapp.app:app
+```
+
+```bash
+cloudflared tunnel create VideoStreamer
+```
+Created tunnel VideoStreamer with id 3da517fa-4313-43bb-8b88-8df37a494d8b
+
+```bash
+cloudflared tunnel route dns VideoStreamer app.gameclips.win
+```
+Added CNAME app.gameclips.win which will route to this tunnel tunnelID=3da517fa-4313-43bb-8b88-8df37a494d8b
+
+```bash
+cloudflared tunnel list
+cloudflared tunnel info VideoStreamer
+ls -l ~/.cloudflared /root/.cloudflared 2>/dev/null
+```
+You can obtain more detailed information for each tunnel with `cloudflared tunnel info <name/uuid>`
+ID                                   NAME          CREATED              CONNECTIONS
+3da517fa-4313-43bb-8b88-8df37a494d8b VideoStreamer 2025-10-14T02:18:41Z
+Your tunnel 3da517fa-4313-43bb-8b88-8df37a494d8b does not have any active connection.
+/home/palissev/.cloudflared:
+total 8
+-r-------- 1 palissev palissev 175 Oct 14 02:18 3da517fa-4313-43bb-8b88-8df37a494d8b.json
+-rw------- 1 palissev palissev 266 Oct 14 02:52 cert.pem
+
+```bash
+/home/palissev/VideoStreamer/.venv/bin/pip install flask gunicorn
+```
+
+```bash
+bash -lc 'cd ~/VideoStreamer && git pull --ff-only && [ -f requirements.txt ] && /home/palissev/VideoStreamer/.venv/bin/pip install -r requirements.txt || true && sudo systemctl restart flask-gunicorn && systemctl status --no-pager --lines=3 flask-gunicorn'
+```
