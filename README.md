@@ -38,6 +38,17 @@ The application will be available at `http://<server-ip>:5000/`.
 * Stream videos with HTTP range requests, enabling browser seeking.
 * Responsive UI styled with Bootstrap.
 
+## Sharing the app outside your home network
+
+By default Flask serves the app only within your local network. To let friends stream from elsewhere you need to expose your server safely:
+
+1. **Use HTTPS and authentication** – Never expose the raw Flask dev server directly. Run it behind a reverse proxy (for example Nginx, Caddy, or Traefik) that terminates HTTPS using Let's Encrypt certificates and enables HTTP basic auth or another login layer.
+2. **Port forwarding or tunnelling** – Either forward an external port on your router to the host running the app (e.g. `external:443 -> internal:5000`) or use a tunnelling solution such as Cloudflare Tunnel, Tailscale Funnel, or an SSH reverse tunnel so your server remains reachable even if you do not control the router.
+3. **Point a hostname** – Configure a DNS record (e.g. via a dynamic DNS provider) so your friends can reach the server with a stable URL that matches your TLS certificate.
+4. **Harden the host** – Keep the server updated, restrict firewall rules to only the proxy port, and consider adding OS-level users or VPN access for trusted friends.
+
+Once the reverse proxy is handling HTTPS and authentication, keep running the Flask app bound to `0.0.0.0` on an internal port. The proxy will forward external requests to it securely.
+
 ## Notes
 
 * Only files detected as video types (based on MIME type) are listed.
