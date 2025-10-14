@@ -38,14 +38,16 @@ def create_app(video_root: Path | None = None) -> Flask:
         if target.is_file():
             return redirect(url_for("watch", subpath=subpath))
 
-        directories, files = _list_directory(target)
-        breadcrumbs = _build_breadcrumbs(subpath)
+        directories, files = _list_directory(target, subpath)
+        breadcrumbs = _build_breadcrumbs(subpath, is_file=False)
         return render_template(
             "browse.html",
             breadcrumbs=breadcrumbs,
             directories=directories,
             files=files,
             current_path=subpath,
+            is_root=(subpath == ""),
+            current_label=_display_directory_label(Path(subpath).name) if subpath else "All Videos",
         )
 
     @app.route("/watch/<path:subpath>")
@@ -54,13 +56,14 @@ def create_app(video_root: Path | None = None) -> Flask:
         if not target.exists() or not target.is_file():
             abort(404)
         mimetype = _guess_mimetype(target)
-        breadcrumbs = _build_breadcrumbs(subpath)
+        breadcrumbs = _build_breadcrumbs(subpath, is_file=True)
         return render_template(
             "watch.html",
             breadcrumbs=breadcrumbs,
             video_path=subpath,
             mimetype=mimetype,
             filename=target.name,
+            display_name=_display_video_label(target.name),
         )
 
     @app.route("/video/<path:subpath>")
@@ -86,14 +89,30 @@ def _resolve_subpath(app: Flask, subpath: str) -> Path:
     return target
 
 
-def _list_directory(path: Path) -> tuple[list[str], list[str]]:
-    directories: list[str] = []
-    files: list[str] = []
+def _list_directory(path: Path, subpath: str) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    directories: list[dict[str, str]] = []
+    files: list[dict[str, str]] = []
     for child in sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower())):
+        relative = f"{subpath}/{child.name}" if subpath else child.name
         if child.is_dir():
-            directories.append(child.name)
+            directories.append(
+                {
+                    "name": child.name,
+                    "display_name": _display_directory_label(child.name),
+                    "link": url_for("browse", subpath=relative),
+                    "video_count": _count_videos(child),
+                }
+            )
         elif _is_video(child):
-            files.append(child.name)
+            files.append(
+                {
+                    "name": child.name,
+                    "display_name": _display_video_label(child.name),
+                    "watch_url": url_for("watch", subpath=relative),
+                    "stream_url": url_for("video_stream", subpath=relative),
+                    "mimetype": _guess_mimetype(child),
+                }
+            )
     return directories, files
 
 
@@ -107,21 +126,45 @@ def _guess_mimetype(path: Path) -> str:
     return mimetype or "application/octet-stream"
 
 
-def _build_breadcrumbs(subpath: str) -> list[tuple[str, str]]:
+def _build_breadcrumbs(subpath: str, *, is_file: bool) -> list[tuple[str, str]]:
     breadcrumbs: list[tuple[str, str]] = [("Home", url_for("browse", subpath=""))]
     if not subpath:
         return breadcrumbs
     parts = subpath.split("/")
     accumulated: list[str] = []
-    for part in parts:
+    for index, part in enumerate(parts):
+        last = index == len(parts) - 1
         accumulated.append(part)
+        label = _display_video_label(part) if is_file and last else _display_directory_label(part)
         breadcrumbs.append(
             (
-                part,
+                label,
                 url_for("browse", subpath="/".join(accumulated)),
             )
         )
     return breadcrumbs
+
+
+def _display_directory_label(name: str) -> str:
+    if not name:
+        return "All Videos"
+    return name.replace("_", " ").title()
+
+
+def _display_video_label(name: str) -> str:
+    stem = Path(name).stem
+    return stem.replace("_", " ").title()
+
+
+def _count_videos(path: Path) -> int:
+    count = 0
+    try:
+        for child in path.iterdir():
+            if child.is_file() and _is_video(child):
+                count += 1
+    except PermissionError:
+        return 0
+    return count
 
 
 def _range_stream(path: Path) -> Response:
