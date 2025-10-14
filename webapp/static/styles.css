@@ -70,6 +70,7 @@ main {
 .breadcrumb {
   background: transparent;
   margin-bottom: 0;
+  --bs-breadcrumb-item-active-color: var(--text-muted);
 }
 
 .breadcrumb .breadcrumb-item + .breadcrumb-item::before {
@@ -134,7 +135,6 @@ main {
   gap: 0.75rem;
 }
 
-/* Ensure video-card text (including headings) uses light theme color */
 .video-card {
   --bs-card-color: var(--text-primary);
   --bs-heading-color: var(--text-primary);
