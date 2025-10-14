@@ -63,9 +63,16 @@ main {
   color: var(--text-muted) !important;
 }
 
-/* Ensure video card titles remain highly readable against dark backgrounds */
-.video-card .card-title {
-  color: var(--text-primary);
+/* Ensure card titles remain highly readable against dark backgrounds */
+.video-card {
+  --bs-card-title-color: var(--text-primary);
+}
+
+.video-card .card-title,
+.video-card .card-title a,
+.category-card .card-title {
+  color: var(--text-primary) !important;
+  font-weight: 600;
 }
 
 .breadcrumb {
