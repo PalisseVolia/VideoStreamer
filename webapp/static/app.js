@@ -2,6 +2,50 @@
   'use strict';
 
   const videoThumbs = document.querySelectorAll('[data-video-src]');
+  const mainPlayer = document.querySelector('.video-player[data-player]');
+
+  const markPlaceholderReady = (video) => {
+    video.classList.add('is-ready');
+    const wrapper = video.parentElement;
+    if (!wrapper) {
+      return;
+    }
+    const placeholder = wrapper.querySelector('.video-thumb-placeholder, .video-player-placeholder');
+    if (placeholder) {
+      placeholder.classList.add('is-hidden');
+    }
+  };
+
+  if (mainPlayer) {
+    const placeholder = mainPlayer.parentElement?.querySelector('.video-player-placeholder');
+    const reveal = () => {
+      markPlaceholderReady(mainPlayer);
+    };
+    mainPlayer.addEventListener('loadeddata', reveal, { once: true });
+    mainPlayer.addEventListener('canplay', reveal, { once: true });
+    if (mainPlayer.readyState >= 3) {
+      reveal();
+    }
+    if (placeholder) {
+      mainPlayer.addEventListener(
+        'error',
+        () => {
+          placeholder.classList.remove('is-hidden');
+          placeholder.classList.add('has-error');
+          const spinner = placeholder.querySelector('.spinner-border');
+          if (spinner) {
+            spinner.classList.add('visually-hidden');
+          }
+          const text = placeholder.querySelector('.placeholder-text');
+          if (text) {
+            text.textContent = 'Unable to load video. Please try again later.';
+          }
+        },
+        { once: true }
+      );
+    }
+  }
+
   if (!videoThumbs.length) {
     return;
   }
@@ -34,14 +78,7 @@
 
   const markReady = (video) => {
     video.pause();
-    video.classList.add('is-ready');
-    const wrapper = video.parentElement;
-    if (wrapper) {
-      const placeholder = wrapper.querySelector('.video-thumb-placeholder');
-      if (placeholder) {
-        placeholder.classList.add('is-hidden');
-      }
-    }
+    markPlaceholderReady(video);
   };
 
   const attachVideoEvents = (video) => {
