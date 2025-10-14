@@ -68,9 +68,14 @@ main {
 }
 
 .breadcrumb {
+  --bs-breadcrumb-item-active-color: var(--text-muted);
   background: transparent;
   margin-bottom: 0;
+}
+
+.breadcrumb-item.active {
   --bs-breadcrumb-item-active-color: var(--text-muted);
+  color: var(--bs-breadcrumb-item-active-color);
 }
 
 .breadcrumb .breadcrumb-item + .breadcrumb-item::before {
