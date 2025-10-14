@@ -1,29 +1,24 @@
 import mimetypes
 import os
 from pathlib import Path, PurePosixPath
-from typing import Iterable
 
 from flask import (
     Flask,
     Response,
     abort,
-    current_app,
     redirect,
     render_template,
-    request,
+    send_file,
     url_for,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_VIDEO_ROOT = (BASE_DIR.parent / "videos").resolve()
-DEFAULT_CHUNK_SIZE = 1024 * 1024  # 1 MiB
-
 
 def create_app(video_root: Path | None = None) -> Flask:
     """Create the Flask application."""
     app = Flask(__name__)
     app.config["VIDEO_ROOT"] = (video_root or DEFAULT_VIDEO_ROOT).resolve()
-    app.config.setdefault("VIDEO_CHUNK_SIZE", DEFAULT_CHUNK_SIZE)
 
     @app.route("/")
     def index() -> Response:
@@ -168,86 +163,24 @@ def _count_videos(path: Path) -> int:
 
 
 def _range_stream(path: Path) -> Response:
-    range_header = request.headers.get("Range", None)
-    file_size = path.stat().st_size
-    mimetype = _guess_mimetype(path)
+    """Stream ``path`` honouring HTTP range headers."""
 
-    chunk_size: int = current_app.config.get("VIDEO_CHUNK_SIZE", DEFAULT_CHUNK_SIZE)
-
-    if range_header is None:
-        response = Response(
-            _file_generator(path, 0, file_size - 1, chunk_size=chunk_size),
-            mimetype=mimetype,
-            direct_passthrough=True,
-        )
-        response.headers.add("Content-Length", str(file_size))
-        response.headers.add("Accept-Ranges", "bytes")
-        return response
-
-    byte1, byte2 = _parse_range(range_header, file_size)
-    length = byte2 - byte1 + 1
-    response = Response(
-        _file_generator(path, byte1, byte2, chunk_size=chunk_size),
-        status=206,
-        mimetype=mimetype,
-        direct_passthrough=True,
+    # ``send_file`` handles Range requests when ``conditional=True``.
+    # This ensures the underlying WSGI server can use ``wsgi.file_wrapper``
+    # (e.g. Gunicorn's ``FileWrapper``) to offload the potentially long-lived
+    # file transmission from the worker process.
+    #
+    # When ``USE_X_SENDFILE`` is enabled the header will be emitted too,
+    # allowing a front-end server such as nginx to serve the file directly.
+    return send_file(
+        path,
+        mimetype=_guess_mimetype(path),
+        as_attachment=False,
+        conditional=True,
+        download_name=path.name,
+        etag=True,
+        last_modified=path.stat().st_mtime,
     )
-    response.headers.add("Content-Range", f"bytes {byte1}-{byte2}/{file_size}")
-    response.headers.add("Accept-Ranges", "bytes")
-    response.headers.add("Content-Length", str(length))
-    return response
-
-
-def _parse_range(range_header: str, file_size: int) -> tuple[int, int]:
-    if not range_header.startswith("bytes="):
-        abort(416)
-    ranges = range_header.replace("bytes=", "", 1).strip().split("-", 1)
-    if len(ranges) != 2:
-        abort(416)
-    start_str, end_str = [part.strip() for part in ranges]
-    if start_str:
-        try:
-            start = int(start_str)
-        except ValueError:
-            abort(416)
-        if start >= file_size or start < 0:
-            abort(416)
-        end = file_size - 1
-        if end_str:
-            try:
-                end = int(end_str)
-            except ValueError:
-                abort(416)
-    else:
-        try:
-            suffix_length = int(end_str)
-        except ValueError:
-            abort(416)
-        if suffix_length <= 0:
-            abort(416)
-        if suffix_length >= file_size:
-            start = 0
-        else:
-            start = file_size - suffix_length
-        end = file_size - 1
-    if end_str:
-        if end < start or end >= file_size:
-            abort(416)
-    if start > end or end >= file_size:
-        abort(416)
-    return start, end
-
-
-def _file_generator(path: Path, start: int, end: int, chunk_size: int = DEFAULT_CHUNK_SIZE) -> Iterable[bytes]:
-    with path.open("rb") as file:
-        file.seek(start)
-        remaining = end - start + 1
-        while remaining > 0:
-            chunk = file.read(min(chunk_size, remaining))
-            if not chunk:
-                break
-            remaining -= len(chunk)
-            yield chunk
 
 
 app = create_app()
