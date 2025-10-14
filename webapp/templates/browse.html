@@ -1,39 +1,98 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1 class="mb-3">Browse Videos</h1>
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      {% for label, link in breadcrumbs %}
-        {% if loop.last %}
-          <li class="breadcrumb-item active" aria-current="page">{{ label }}</li>
-        {% else %}
-          <li class="breadcrumb-item"><a href="{{ link }}">{{ label }}</a></li>
-        {% endif %}
-      {% endfor %}
-    </ol>
-  </nav>
+  <section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-3">
+      <div>
+        <p class="subtitle text-uppercase mb-2">{{ 'Categories' if is_root else 'Collection' }}</p>
+        <h1 class="page-title mb-2">{{ current_label }}</h1>
+        <p class="page-lead mb-0 text-muted">
+          {% if is_root %}
+            Dive into your curated folders and quickly find the clip you want to share.
+          {% else %}
+            Explore every video in this collection or jump deeper into nested folders.
+          {% endif %}
+        </p>
+      </div>
+      <nav aria-label="breadcrumb" class="flex-shrink-0">
+        <ol class="breadcrumb mb-0">
+          {% for label, link in breadcrumbs %}
+            {% if loop.last %}
+              <li class="breadcrumb-item active" aria-current="page">{{ label }}</li>
+            {% else %}
+              <li class="breadcrumb-item"><a href="{{ link }}">{{ label }}</a></li>
+            {% endif %}
+          {% endfor %}
+        </ol>
+      </nav>
+    </div>
+  </section>
 
   {% if directories %}
-    <h2 class="h5 mt-4">Folders</h2>
-    <div class="list-group mb-4">
-      {% for directory in directories %}
-        <a class="list-group-item list-group-item-action" href="{{ url_for('browse', subpath=(current_path ~ '/' if current_path else '') ~ directory) }}">
-          <i class="bi bi-folder-fill me-2"></i>{{ directory }}
-        </a>
-      {% endfor %}
-    </div>
+    <section class="mb-5">
+      <div class="section-heading d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 mb-0">{{ 'Featured Categories' if is_root else 'Subfolders' }}</h2>
+      </div>
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for directory in directories %}
+          <div class="col">
+            <a class="card category-card h-100" href="{{ directory.link }}">
+              <div class="card-body">
+                <div class="icon-wrapper mb-3">
+                  <i class="bi bi-folder-symlink"></i>
+                </div>
+                <h3 class="h5 card-title">{{ directory.display_name }}</h3>
+                <p class="card-text text-muted mb-0">{{ directory.video_count }} {{ 'video' if directory.video_count == 1 else 'videos' }}</p>
+              </div>
+              <span class="stretched-link"></span>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
   {% endif %}
 
-  {% if files %}
-    <h2 class="h5 mt-4">Videos</h2>
-    <div class="list-group">
-      {% for file in files %}
-        <a class="list-group-item list-group-item-action" href="{{ url_for('watch', subpath=(current_path ~ '/' if current_path else '') ~ file) }}">
-          <i class="bi bi-camera-video-fill me-2"></i>{{ file }}
-        </a>
-      {% endfor %}
+  <section>
+    <div class="section-heading d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h5 mb-0">{{ 'All Videos' if is_root else 'Videos in this folder' }}</h2>
+      {% if files %}
+        <span class="badge rounded-pill text-bg-secondary">{{ files | length }}</span>
+      {% endif %}
     </div>
-  {% else %}
-    <p class="text-muted">No videos found in this folder.</p>
-  {% endif %}
+    {% if files %}
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for file in files %}
+          <div class="col">
+            <div class="card video-card h-100">
+              <div class="ratio ratio-16x9 video-thumb-wrapper">
+                <div class="video-thumb-placeholder d-flex align-items-center justify-content-center">
+                  <i class="bi bi-camera-video-off"></i>
+                </div>
+                <video class="video-thumb" tabindex="0" muted playsinline preload="metadata" data-video-src="{{ file.stream_url }}" data-video-type="{{ file.mimetype }}" data-preview-second="1.5"></video>
+              </div>
+              <div class="card-body">
+                <h3 class="h6 card-title mb-2">{{ file.display_name }}</h3>
+                <p class="card-text text-muted">Tap to start watching instantly.</p>
+                <div class="d-flex align-items-center gap-2">
+                  <a class="btn btn-primary btn-sm" href="{{ file.watch_url }}">
+                    <i class="bi bi-play-fill me-1"></i> Watch
+                  </a>
+                  <a class="btn btn-outline-light btn-sm" href="{{ file.stream_url }}" title="Download" download>
+                    <i class="bi bi-download"></i>
+                  </a>
+                </div>
+              </div>
+              <a class="stretched-link" href="{{ file.watch_url }}" aria-label="Open {{ file.display_name }}"></a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon mb-3">
+          <i class="bi bi-inboxes"></i>
+        </div>
+        <p class="text-muted mb-0">No videos found in this folder yet.</p>
+      </div>
+    {% endif %}
+  </section>
 {% endblock %}
