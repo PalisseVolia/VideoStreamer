@@ -5,13 +5,6 @@
       <div>
         <p class="subtitle text-uppercase mb-2">{{ 'Categories' if is_root else 'Collection' }}</p>
         <h1 class="page-title mb-2">{{ current_label }}</h1>
-        <p class="page-lead mb-0 text-muted">
-          {% if is_root %}
-            Dive into your curated folders and quickly find the clip you want to share.
-          {% else %}
-            Explore every video in this collection or jump deeper into nested folders.
-          {% endif %}
-        </p>
       </div>
       <nav aria-label="breadcrumb" class="flex-shrink-0">
         <ol class="breadcrumb mb-0">
@@ -30,7 +23,7 @@
   {% if directories %}
     <section class="mb-5">
       <div class="section-heading d-flex align-items-center justify-content-between mb-3">
-        <h2 class="h5 mb-0">{{ 'Featured Categories' if is_root else 'Subfolders' }}</h2>
+        <h2 class="h5 mb-0">{{ 'Categories' if is_root else 'Subfolders' }}</h2>
       </div>
       <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
         {% for directory in directories %}
