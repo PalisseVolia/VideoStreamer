@@ -96,6 +96,10 @@ main {
   transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
+.card-title {
+  color: var(--text-primary);
+}
+
 .card:hover,
 .card:focus-within {
   transform: translateY(-3px);
