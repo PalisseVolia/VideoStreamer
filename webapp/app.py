@@ -1,6 +1,6 @@
 import mimetypes
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Iterable
 
 from flask import (
@@ -75,9 +75,14 @@ def create_app(video_root: Path | None = None) -> Flask:
 
 def _resolve_subpath(app: Flask, subpath: str) -> Path:
     root: Path = app.config["VIDEO_ROOT"]
-    target = (root / subpath).resolve()
-    if root not in target.parents and target != root:
+    if not subpath:
+        return root
+
+    normalized = PurePosixPath(subpath)
+    if normalized.is_absolute() or ".." in normalized.parts:
         abort(404)
+
+    target = root.joinpath(*normalized.parts)
     return target
 
 
