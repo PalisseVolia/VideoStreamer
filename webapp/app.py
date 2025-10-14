@@ -13,7 +13,8 @@ from flask import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_VIDEO_ROOT = (BASE_DIR.parent / "videos").resolve()
+# DEFAULT_VIDEO_ROOT = (BASE_DIR.parent / "videos").resolve() # thsi is for project folder
+DEFAULT_VIDEO_ROOT = Path("/mnt/data/videos").resolve()
 
 def create_app(video_root: Path | None = None) -> Flask:
     """Create the Flask application."""
