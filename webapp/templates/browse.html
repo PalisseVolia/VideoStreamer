@@ -6,17 +6,6 @@
         <p class="subtitle text-uppercase mb-2">{{ 'Categories' if is_root else 'Collection' }}</p>
         <h1 class="page-title mb-2">{{ current_label }}</h1>
       </div>
-      <nav aria-label="breadcrumb" class="flex-shrink-0">
-        <ol class="breadcrumb mb-0">
-          {% for label, link in breadcrumbs %}
-            {% if loop.last %}
-              <li class="breadcrumb-item active" aria-current="page">{{ label }}</li>
-            {% else %}
-              <li class="breadcrumb-item"><a href="{{ link }}">{{ label }}</a></li>
-            {% endif %}
-          {% endfor %}
-        </ol>
-      </nav>
     </div>
   </section>
 
@@ -47,9 +36,22 @@
   <section>
     <div class="section-heading d-flex align-items-center justify-content-between mb-3">
       <h2 class="h5 mb-0">{{ 'All Videos' if is_root else 'Videos in this folder' }}</h2>
-      {% if files %}
-        <span class="badge rounded-pill text-bg-secondary">{{ files | length }}</span>
-      {% endif %}
+      <div class="d-flex align-items-center gap-3 flex-wrap justify-content-end">
+        <nav aria-label="breadcrumb" class="flex-shrink-0">
+          <ol class="breadcrumb mb-0">
+            {% for label, link in breadcrumbs %}
+              {% if loop.last %}
+                <li class="breadcrumb-item active" aria-current="page">{{ label }}</li>
+              {% else %}
+                <li class="breadcrumb-item"><a href="{{ link }}">{{ label }}</a></li>
+              {% endif %}
+            {% endfor %}
+          </ol>
+        </nav>
+        {% if files %}
+          <span class="badge rounded-pill text-bg-secondary">{{ files | length }}</span>
+        {% endif %}
+      </div>
     </div>
     {% if files %}
       <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4">
