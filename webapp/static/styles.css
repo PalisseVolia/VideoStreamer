@@ -74,8 +74,7 @@ main {
 }
 
 .breadcrumb-item.active {
-  --bs-breadcrumb-item-active-color: var(--text-muted);
-  color: var(--bs-breadcrumb-item-active-color);
+  color: var(--text-muted);
 }
 
 .breadcrumb .breadcrumb-item + .breadcrumb-item::before {
