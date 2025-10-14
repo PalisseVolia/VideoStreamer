@@ -10,7 +10,6 @@
   --text-primary: #f4f7fb;
   --text-muted: #98a3b7;
   --shadow-color: rgba(9, 17, 34, 0.45);
-  --bs-card-title-color: azure;
 }
 
 .app-body {
@@ -93,6 +92,7 @@ main {
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 1rem;
   box-shadow: 0 18px 40px -20px var(--shadow-color);
+  color: azure;
   transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
