@@ -63,9 +63,9 @@ main {
   color: var(--text-muted) !important;
 }
 
-/* Make card titles brighter (azure-like) */
-.card .card-title {
-  color: var(--app-accent);
+/* Ensure video card titles remain highly readable against dark backgrounds */
+.video-card .card-title {
+  color: var(--text-primary);
 }
 
 .breadcrumb {
