@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1 class="mb-3">Browse Videos</h1>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      {% for label, link in breadcrumbs %}
+        {% if loop.last %}
+          <li class="breadcrumb-item active" aria-current="page">{{ label }}</li>
+        {% else %}
+          <li class="breadcrumb-item"><a href="{{ link }}">{{ label }}</a></li>
+        {% endif %}
+      {% endfor %}
+    </ol>
+  </nav>
+
+  {% if directories %}
+    <h2 class="h5 mt-4">Folders</h2>
+    <div class="list-group mb-4">
+      {% for directory in directories %}
+        <a class="list-group-item list-group-item-action" href="{{ url_for('browse', subpath=(current_path ~ '/' if current_path else '') ~ directory) }}">
+          <i class="bi bi-folder-fill me-2"></i>{{ directory }}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if files %}
+    <h2 class="h5 mt-4">Videos</h2>
+    <div class="list-group">
+      {% for file in files %}
+        <a class="list-group-item list-group-item-action" href="{{ url_for('watch', subpath=(current_path ~ '/' if current_path else '') ~ file) }}">
+          <i class="bi bi-camera-video-fill me-2"></i>{{ file }}
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">No videos found in this folder.</p>
+  {% endif %}
+{% endblock %}
