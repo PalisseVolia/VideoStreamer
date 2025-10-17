@@ -1,7 +1,5 @@
 import mimetypes
 import os
-import subprocess
-import tempfile
 from pathlib import Path, PurePosixPath
 
 from flask import (
@@ -17,21 +15,11 @@ from flask import (
 BASE_DIR = Path(__file__).resolve().parent
 # DEFAULT_VIDEO_ROOT = (BASE_DIR.parent / "videos").resolve() # thsi is for project folder
 DEFAULT_VIDEO_ROOT = Path("/mnt/data/videos").resolve()
-DEFAULT_THUMBNAIL_SUBDIR = "thumbnails"
-DEFAULT_THUMBNAIL_EXTENSION = ".jpg"
-DEFAULT_THUMBNAIL_SEEK_SECONDS = 1.5
-DEFAULT_THUMBNAIL_WIDTH = 640
 
 def create_app(video_root: Path | None = None) -> Flask:
     """Create the Flask application."""
     app = Flask(__name__)
-    resolved_video_root = (video_root or DEFAULT_VIDEO_ROOT).resolve()
-    app.config["VIDEO_ROOT"] = resolved_video_root
-    thumbnail_root = resolved_video_root.parent / DEFAULT_THUMBNAIL_SUBDIR
-    thumbnail_root.mkdir(parents=True, exist_ok=True)
-    app.config["THUMBNAIL_ROOT"] = thumbnail_root
-    app.config.setdefault("THUMBNAIL_SEEK_SECONDS", DEFAULT_THUMBNAIL_SEEK_SECONDS)
-    app.config.setdefault("THUMBNAIL_WIDTH", DEFAULT_THUMBNAIL_WIDTH)
+    app.config["VIDEO_ROOT"] = (video_root or DEFAULT_VIDEO_ROOT).resolve()
 
     @app.route("/")
     def index() -> Response:
@@ -46,7 +34,7 @@ def create_app(video_root: Path | None = None) -> Flask:
         if target.is_file():
             return redirect(url_for("watch", subpath=subpath))
 
-        directories, files = _list_directory(app, target, subpath)
+        directories, files = _list_directory(target, subpath)
         breadcrumbs = _build_breadcrumbs(subpath, is_file=False)
         return render_template(
             "browse.html",
@@ -81,14 +69,6 @@ def create_app(video_root: Path | None = None) -> Flask:
             abort(404)
         return _range_stream(target)
 
-    @app.route("/thumbnail/<path:subpath>")
-    def thumbnail(subpath: str) -> Response:
-        target = _resolve_thumbnail_subpath(app, subpath)
-        if not target.exists() or not target.is_file():
-            abort(404)
-        mimetype = mimetypes.types_map.get(target.suffix.lower(), "image/jpeg")
-        return send_file(target, mimetype=mimetype)
-
     return app
 
 
@@ -105,7 +85,7 @@ def _resolve_subpath(app: Flask, subpath: str) -> Path:
     return target
 
 
-def _list_directory(app: Flask, path: Path, subpath: str) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+def _list_directory(path: Path, subpath: str) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     directories: list[dict[str, str]] = []
     files: list[dict[str, str]] = []
     for child in sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower())):
@@ -120,7 +100,6 @@ def _list_directory(app: Flask, path: Path, subpath: str) -> tuple[list[dict[str
                 }
             )
         elif _is_video(child):
-            thumbnail_url = _get_thumbnail_url(app, relative)
             files.append(
                 {
                     "name": child.name,
@@ -128,7 +107,6 @@ def _list_directory(app: Flask, path: Path, subpath: str) -> tuple[list[dict[str
                     "watch_url": url_for("watch", subpath=relative),
                     "stream_url": url_for("video_stream", subpath=relative),
                     "mimetype": _guess_mimetype(child),
-                    "thumbnail_url": thumbnail_url,
                 }
             )
     return directories, files
@@ -204,100 +182,6 @@ def _range_stream(path: Path) -> Response:
         etag=True,
         last_modified=path.stat().st_mtime,
     )
-
-
-def _resolve_thumbnail_subpath(app: Flask, subpath: str) -> Path:
-    root: Path = app.config["THUMBNAIL_ROOT"]
-    normalized = PurePosixPath(subpath)
-    if normalized.is_absolute() or ".." in normalized.parts:
-        abort(404)
-    return root.joinpath(*normalized.parts)
-
-
-def _get_thumbnail_url(app: Flask, subpath: str) -> str | None:
-    thumbnail_path = _ensure_thumbnail(app, subpath)
-    if not thumbnail_path:
-        return None
-    relative = thumbnail_path.relative_to(app.config["THUMBNAIL_ROOT"])
-    return url_for("thumbnail", subpath="/".join(relative.parts))
-
-
-def _ensure_thumbnail(app: Flask, subpath: str) -> Path | None:
-    video_path = _resolve_subpath(app, subpath)
-    if not video_path.exists() or not video_path.is_file():
-        return None
-
-    thumbnail_root: Path = app.config["THUMBNAIL_ROOT"]
-    normalized = PurePosixPath(subpath)
-    thumbnail_path = thumbnail_root.joinpath(*normalized.parts).with_suffix(DEFAULT_THUMBNAIL_EXTENSION)
-
-    try:
-        video_mtime = video_path.stat().st_mtime
-    except OSError:
-        video_mtime = None
-
-    if thumbnail_path.exists():
-        if video_mtime is None:
-            return thumbnail_path
-        try:
-            if thumbnail_path.stat().st_mtime >= video_mtime:
-                return thumbnail_path
-        except OSError:
-            pass
-
-    thumbnail_path.parent.mkdir(parents=True, exist_ok=True)
-    if _create_thumbnail(app, video_path, thumbnail_path):
-        return thumbnail_path if thumbnail_path.exists() else None
-    return None
-
-
-def _create_thumbnail(app: Flask, video_path: Path, thumbnail_path: Path) -> bool:
-    seek_seconds = app.config.get("THUMBNAIL_SEEK_SECONDS", DEFAULT_THUMBNAIL_SEEK_SECONDS)
-    width = app.config.get("THUMBNAIL_WIDTH", DEFAULT_THUMBNAIL_WIDTH)
-    fd, temp_name = tempfile.mkstemp(dir=thumbnail_path.parent, suffix=thumbnail_path.suffix)
-    os.close(fd)
-    temp_path = Path(temp_name)
-    command = [
-        "ffmpeg",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-y",
-        "-ss",
-        str(seek_seconds),
-        "-i",
-        os.fspath(video_path),
-        "-frames:v",
-        "1",
-        "-vf",
-        f"scale={width}:-2",
-        os.fspath(temp_path),
-    ]
-
-    try:
-        completed = subprocess.run(command, check=False, capture_output=True)
-        if completed.returncode != 0:
-            app.logger.warning(
-                "Failed to generate thumbnail for %s (exit code %s): %s",
-                video_path,
-                completed.returncode,
-                completed.stderr.decode("utf-8", errors="ignore"),
-            )
-            return False
-        temp_path.replace(thumbnail_path)
-        return True
-    except FileNotFoundError:
-        app.logger.warning("ffmpeg executable not found; cannot generate thumbnail for %s", video_path)
-        return False
-    except Exception:
-        app.logger.exception("Unexpected error while generating thumbnail for %s", video_path)
-        return False
-    finally:
-        if temp_path.exists():
-            try:
-                temp_path.unlink(missing_ok=True)
-            except Exception:
-                app.logger.debug("Unable to remove temporary thumbnail %s", temp_path, exc_info=True)
 
 
 app = create_app()
