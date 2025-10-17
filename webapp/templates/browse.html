@@ -3,72 +3,57 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Library</title>
+    <title>Video Library</title>
     <link rel="stylesheet" href="/static/style.css">
   </head>
   <body>
     <header>
-      <div class="container">
-        <h1>Library</h1>
-        <nav class="breadcrumbs">
-          <a class="crumb" href="{{ url_for('browse', path='') }}">Root</a>
-          {% if current_rel %}
-            {% set parts = current_rel.split('/') %}
-            {% set acc = namespace(path='') %}
-            {% for part in parts %}
-              {% set acc.path = acc.path + ('' if not acc.path else '/') + part %}
-              <a class="crumb" href="{{ url_for('browse', path=acc.path) }}">/{{ part }}</a>
-            {% endfor %}
-          {% endif %}
-        </nav>
-      </div>
+      <h1>Video Library</h1>
+      {% if current_rel %}
+      <nav>
+        <a href="{{ url_for('browse', path='') }}">Root</a>
+        {% if parent_rel is not none %}
+          &raquo; <a href="{{ url_for('browse', path=parent_rel) }}">Up</a>
+        {% endif %}
+        <span class="path">/{{ current_rel }}</span>
+      </nav>
+      {% else %}
+      <nav><span class="path">/</span></nav>
+      {% endif %}
     </header>
 
-    <div class="container">
-      <main>
-        <section>
-          <h2>{{ 'Categories' if not current_rel else 'Folders' }}</h2>
-          {% if dirs %}
-          <div class="grid">
-            {% for name, rel in dirs %}
-              <a class="card" href="{{ url_for('browse', path=rel) }}" title="Open {{ name }}">
-                <div class="title"><span class="icon"></span> {{ name }}</div>
-              </a>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="muted">Empty.</p>
-          {% endif %}
-        </section>
-
-        {% if current_rel %}
-        <section>
-          <h2>Videos</h2>
-          {% if videos %}
-          <ul class="list">
-            {% for name, rel in videos %}
-              <li class="file">
-                <a class="name" href="{{ url_for('watch', rel=rel) }}" title="Open">{{ name }}</a>
-                <span class="actions">
-                  <a class="pill" href="{{ url_for('watch', rel=rel) }}" title="Open">
-                    <span class="ico ico-open"></span> Open
-                  </a>
-                  <a class="pill" href="{{ url_for('video', rel=rel) }}" title="Direct link">
-                    <span class="ico ico-link"></span> Direct
-                  </a>
-                  <a class="pill" href="{{ url_for('video', rel=rel) }}" download title="Download">
-                    <span class="ico ico-dl"></span> Download
-                  </a>
-                </span>
-              </li>
-            {% endfor %}
-          </ul>
-          {% else %}
-          <p class="muted">No videos in this folder.</p>
-          {% endif %}
-        </section>
+    <main>
+      <section>
+        <h2>Folders</h2>
+        {% if dirs %}
+        <ul class="list">
+          {% for name, rel in dirs %}
+            <li class="dir">
+              <a href="{{ url_for('browse', path=rel) }}">{{ name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">No subfolders.</p>
         {% endif %}
-      </main>
-    </div>
+      </section>
+
+      <section>
+        <h2>Videos</h2>
+        {% if videos %}
+        <ul class="list">
+          {% for name, rel in videos %}
+            <li class="file">
+              <a href="{{ url_for('watch', rel=rel) }}">{{ name }}</a>
+              <a class="small" href="{{ url_for('video', rel=rel) }}" title="Direct link">direct</a>
+            </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">No videos found here.</p>
+        {% endif %}
+      </section>
+    </main>
   </body>
 </html>
+
