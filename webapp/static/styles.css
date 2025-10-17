@@ -186,6 +186,11 @@ main {
   opacity: 0;
 }
 
+.video-thumb-wrapper.thumb-error .video-thumb {
+  opacity: 0;
+  visibility: hidden;
+}
+
 .video-card:hover .video-thumb.is-ready {
   filter: brightness(1.1);
 }
