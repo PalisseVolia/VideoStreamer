@@ -1,7 +1,6 @@
 import mimetypes
 import os
 import subprocess
-import tempfile
 import logging
 from pathlib import Path, PurePosixPath
 
@@ -250,10 +249,7 @@ def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1
     If ffmpeg is not available or fails, leaves the file absent.
     """
     # Prefer a small-ish width for grid thumbnails
-    # Use a temporary file that preserves the .jpg extension so ffmpeg can infer format
-    fd, tmp_name = tempfile.mkstemp(suffix=".jpg", dir=str(thumb_path.parent))
-    os.close(fd)
-    tmp_path = Path(tmp_name)
+    tmp_path = thumb_path.with_suffix(thumb_path.suffix + ".tmp")
     try:
         if tmp_path.exists():
             try:
@@ -268,7 +264,6 @@ def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1
             "-hide_banner",
             "-loglevel",
             "error",
-            "-nostdin",
             "-y",
             "-ss",
             str(max(0.0, float(second))),
@@ -283,8 +278,6 @@ def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1
             "3",
             str(tmp_path),
         ]
-        if logger:
-            logger.debug("Running ffmpeg: %s", " ".join(cmd))
         try:
             subprocess.run(cmd, check=True, capture_output=True)
         except subprocess.CalledProcessError as e:

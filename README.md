@@ -111,18 +111,6 @@ total 8
 /home/palissev/VideoStreamer/.venv/bin/pip install flask gunicorn
 ```
 
-# Pull and reload service
 ```bash
 bash -lc 'cd ~/VideoStreamer && git pull --ff-only && [ -f requirements.txt ] && /home/palissev/VideoStreamer/.venv/bin/pip install -r requirements.txt || true && sudo systemctl restart flask-gunicorn && systemctl status --no-pager --lines=3 flask-gunicorn'
-```
-
-# Debug
-```bash
-systemctl status --no-pager --lines=3 flask-gunicorn
-sudo journalctl -u flask-gunicorn -f -n 200
-```
-
-# Service path
-```bash
-sudo nano /etc/systemd/system/flask-gunicorn.service
 ```
