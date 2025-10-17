@@ -15,18 +15,20 @@ from flask import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-# DEFAULT_VIDEO_ROOT = (BASE_DIR.parent / "videos").resolve() # thsi is for project folder
+# DEFAULT_VIDEO_ROOT = (BASE_DIR.parent / "videos").resolve()  # Use project videos directory locally
 DEFAULT_VIDEO_ROOT = Path("/mnt/data/videos").resolve()
 DEFAULT_THUMBNAIL_SUBDIR = "thumbnails"
 DEFAULT_THUMBNAIL_EXTENSION = ".jpg"
 DEFAULT_THUMBNAIL_SEEK_SECONDS = 1.5
 DEFAULT_THUMBNAIL_WIDTH = 640
 
+
 def create_app(video_root: Path | None = None) -> Flask:
     """Create the Flask application."""
     app = Flask(__name__)
     resolved_video_root = (video_root or DEFAULT_VIDEO_ROOT).resolve()
     app.config["VIDEO_ROOT"] = resolved_video_root
+
     thumbnail_root = resolved_video_root.parent / DEFAULT_THUMBNAIL_SUBDIR
     thumbnail_root.mkdir(parents=True, exist_ok=True)
     app.config["THUMBNAIL_ROOT"] = thumbnail_root
@@ -270,7 +272,7 @@ def _create_thumbnail(app: Flask, video_path: Path, thumbnail_path: Path) -> boo
         "-frames:v",
         "1",
         "-vf",
-        f"scale={width}:-2",
+        f"scale=min({width}\\,iw):-2",
         os.fspath(temp_path),
     ]
 
@@ -305,3 +307,4 @@ app = create_app()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port)
+

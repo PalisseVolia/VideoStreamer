@@ -94,3 +94,19 @@ total 8
 ```bash
 bash -lc 'cd ~/VideoStreamer && git pull --ff-only && [ -f requirements.txt ] && /home/palissev/VideoStreamer/.venv/bin/pip install -r requirements.txt || true && sudo systemctl restart flask-gunicorn && systemctl status --no-pager --lines=3 flask-gunicorn'
 ```
+
+```bash
+palissev@pvserver:~$ curl -I https://app.gameclips.win
+curl -I http://127.0.0.1:5000
+```
+
+# Service status
+```bash
+systemctl status cloudflared-tunnel --no-pager
+systemctl status --no-pager --lines=3 flask-gunicorn
+```
+
+# Service path
+```bash
+sudo nano /etc/systemd/system/flask-gunicorn.service
+```
