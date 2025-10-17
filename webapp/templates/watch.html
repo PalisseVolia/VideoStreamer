@@ -8,20 +8,37 @@
   </head>
   <body>
     <header>
-      <h1>{{ filename }}</h1>
-      <nav>
-        <a href="{{ url_for('browse') }}">Back to Library</a>
-      </nav>
-    </header>
-    <main>
-      <div class="player">
-        <video id="video" controls preload="metadata" playsinline style="max-width: 100%" src="{{ url_for('video', rel=rel) }}#t=0.1" type="{{ mime }}">
-          Your browser does not support the video tag.
-        </video>
+      <div class="container">
+        <h1>{{ filename }}</h1>
+        <nav class="breadcrumbs">
+          <a class="crumb" href="{{ url_for('browse', path='') }}">Root</a>
+          {% if rel %}
+            {% set parts = rel.split('/') %}
+            {% set acc = namespace(path='') %}
+            {% for part in parts[:-1] %}
+              {% set acc.path = acc.path + ('' if not acc.path else '/') + part %}
+              <a class="crumb" href="{{ url_for('browse', path=acc.path) }}">/{{ part }}</a>
+            {% endfor %}
+          {% endif %}
+        </nav>
       </div>
-      <p>
-        <a href="{{ url_for('video', rel=rel) }}" download>Download</a>
-      </p>
-    </main>
+    </header>
+    <div class="container">
+      <main>
+        <div class="player">
+          <video id="video" controls preload="metadata" playsinline src="{{ url_for('video', rel=rel) }}#t=0.1" type="{{ mime }}">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div class="actions-bar">
+          <a class="pill" href="{{ url_for('video', rel=rel) }}">
+            <span class="ico ico-link"></span> Direct
+          </a>
+          <a class="pill" href="{{ url_for('video', rel=rel) }}" download>
+            <span class="ico ico-dl"></span> Download
+          </a>
+        </div>
+      </main>
+    </div>
   </body>
-</html>
+  </html>
