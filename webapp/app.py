@@ -1,5 +1,6 @@
 import mimetypes
 import os
+import subprocess
 from pathlib import Path, PurePosixPath
 
 from flask import (
@@ -13,13 +14,16 @@ from flask import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent
-# DEFAULT_VIDEO_ROOT = (BASE_DIR.parent / "videos").resolve() # thsi is for project folder
+# DEFAULT_VIDEO_ROOT = (BASE_DIR.parent / "videos").resolve()  # this is for project folder
 DEFAULT_VIDEO_ROOT = Path("/mnt/data/videos").resolve()
+DEFAULT_THUMBNAIL_ROOT = (BASE_DIR.parent / "thumbnails").resolve()
 
 def create_app(video_root: Path | None = None) -> Flask:
     """Create the Flask application."""
     app = Flask(__name__)
     app.config["VIDEO_ROOT"] = (video_root or DEFAULT_VIDEO_ROOT).resolve()
+    # Thumbnails are stored in the project folder for speed, independent of the video drive
+    app.config["THUMBNAIL_ROOT"] = DEFAULT_THUMBNAIL_ROOT
 
     @app.route("/")
     def index() -> Response:
@@ -69,6 +73,44 @@ def create_app(video_root: Path | None = None) -> Flask:
             abort(404)
         return _range_stream(target)
 
+    @app.route("/thumb/<path:subpath>")
+    def thumbnail(subpath: str) -> Response:
+        """Serve or generate a cached thumbnail for the given video subpath."""
+        video_path = _resolve_subpath(app, subpath)
+        if not video_path.exists() or not video_path.is_file() or not _is_video(video_path):
+            abort(404)
+
+        thumb_path = _thumbnail_path(app, subpath)
+        try:
+            # Ensure directory exists
+            thumb_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Generate if missing or stale versus source video
+            needs_generate = True
+            if thumb_path.exists():
+                try:
+                    needs_generate = thumb_path.stat().st_mtime < video_path.stat().st_mtime
+                except OSError:
+                    needs_generate = True
+
+            if needs_generate:
+                _generate_thumbnail(video_path, thumb_path)
+
+            if not thumb_path.exists():
+                abort(404)
+
+            return send_file(
+                thumb_path,
+                mimetype="image/jpeg",
+                as_attachment=False,
+                conditional=True,
+                download_name=thumb_path.name,
+                etag=True,
+                last_modified=thumb_path.stat().st_mtime,
+            )
+        except PermissionError:
+            abort(403)
+
     return app
 
 
@@ -107,6 +149,7 @@ def _list_directory(path: Path, subpath: str) -> tuple[list[dict[str, str]], lis
                     "watch_url": url_for("watch", subpath=relative),
                     "stream_url": url_for("video_stream", subpath=relative),
                     "mimetype": _guess_mimetype(child),
+                    "thumb_url": url_for("thumbnail", subpath=relative),
                 }
             )
     return directories, files
@@ -182,6 +225,65 @@ def _range_stream(path: Path) -> Response:
         etag=True,
         last_modified=path.stat().st_mtime,
     )
+
+
+def _thumbnail_path(app: Flask, subpath: str) -> Path:
+    """Compute the thumbnail path for a given video subpath within THUMBNAIL_ROOT."""
+    normalized = PurePosixPath(subpath)
+    if normalized.is_absolute() or ".." in normalized.parts:
+        abort(404)
+    # Mirror the directory structure, but ensure JPEG extension
+    stem = normalized.stem + ".jpg"
+    return app.config["THUMBNAIL_ROOT"].joinpath(*normalized.parent.parts, stem)
+
+
+def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1.5) -> None:
+    """Generate a thumbnail using ffmpeg if available.
+
+    Writes to a temporary file and then moves into place for atomicity.
+    If ffmpeg is not available or fails, leaves the file absent.
+    """
+    # Prefer a small-ish width for grid thumbnails
+    tmp_path = thumb_path.with_suffix(thumb_path.suffix + ".tmp")
+    try:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+
+        # Build ffmpeg command. Place -ss before -i for faster seek.
+        # Scale down to max width 480, keep aspect ratio.
+        cmd = [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-ss",
+            str(max(0.0, float(second))),
+            "-i",
+            str(video_path),
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale='min(480,iw)':-2",
+            "-q:v",
+            "3",
+            str(tmp_path),
+        ]
+        subprocess.run(cmd, check=True)
+
+        # Ensure parent exists (should already) then move into place
+        thumb_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path.replace(thumb_path)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # ffmpeg failed or not installed; best effort: clean temp and skip
+        try:
+            if tmp_path.exists():
+                tmp_path.unlink()
+        except OSError:
+            pass
 
 
 app = create_app()

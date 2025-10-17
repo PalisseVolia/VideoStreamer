@@ -62,7 +62,10 @@
                 <div class="video-thumb-placeholder d-flex align-items-center justify-content-center">
                   <i class="bi bi-camera-video-off"></i>
                 </div>
-                <video class="video-thumb" tabindex="0" muted playsinline preload="metadata" data-video-src="{{ file.stream_url }}" data-video-type="{{ file.mimetype }}" data-preview-second="1.5"></video>
+                <img class="video-thumb" alt="{{ file.display_name }} thumbnail" loading="lazy"
+                     src="{{ file.thumb_url }}"
+                     onload="this.classList.add('is-ready'); var p=this.previousElementSibling; if(p){p.classList.add('is-hidden');}"
+                />
               </div>
               <div class="card-body">
                 <h3 class="h6 card-title mb-2">{{ file.display_name }}</h3>
