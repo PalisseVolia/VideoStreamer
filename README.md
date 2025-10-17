@@ -37,7 +37,6 @@ The application will be available at `http://<server-ip>:5000/`.
 * Browse videos organized in nested folders.
 * Stream videos with HTTP range requests, enabling browser seeking.
 * Responsive UI styled with Bootstrap.
-* Cached thumbnails generated on-demand with ffmpeg and stored locally.
 
 ## Sharing the app outside your home network
 
@@ -54,25 +53,6 @@ Once the reverse proxy is handling HTTPS and authentication, keep running the Fl
 
 * Only files detected as video types (based on MIME type) are listed.
 * If you add new files while the server is running, refresh the page to see them.
-
-### Thumbnails
-
-The browse grid uses cached thumbnails generated on-demand with `ffmpeg` and stored under the project `thumbnails/` folder (not the external videos drive).
-
-Install `ffmpeg` and ensure it is available on PATH for the user running the app:
-
-- Windows (winget): `winget install --id=Gyan.FFmpeg`
-- Windows (Chocolatey): `choco install ffmpeg`
-- macOS (Homebrew): `brew install ffmpeg`
-- Debian/Ubuntu: `sudo apt-get install ffmpeg`
-
-Verify:
-
-```bash
-ffmpeg -version
-```
-
-On first request to a thumbnail URL (e.g. `/thumb/folder/Video.mp4`) the server generates a JPEG once and serves it; subsequent requests are served from disk. If generation fails, a 404 is returned and the server log will include details (e.g., ffmpeg missing or filter failure).
 
 
 

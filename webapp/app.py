@@ -1,7 +1,6 @@
 import mimetypes
 import os
 import subprocess
-import logging
 from pathlib import Path, PurePosixPath
 
 from flask import (
@@ -22,8 +21,6 @@ DEFAULT_THUMBNAIL_ROOT = (BASE_DIR.parent / "thumbnails").resolve()
 def create_app(video_root: Path | None = None) -> Flask:
     """Create the Flask application."""
     app = Flask(__name__)
-    # Basic logger for thumbnail issues
-    app.logger.setLevel(logging.INFO)
     app.config["VIDEO_ROOT"] = (video_root or DEFAULT_VIDEO_ROOT).resolve()
     # Thumbnails are stored in the project folder for speed, independent of the video drive
     app.config["THUMBNAIL_ROOT"] = DEFAULT_THUMBNAIL_ROOT
@@ -97,8 +94,7 @@ def create_app(video_root: Path | None = None) -> Flask:
                     needs_generate = True
 
             if needs_generate:
-                app.logger.info("Generating thumbnail for %s -> %s", video_path, thumb_path)
-                _generate_thumbnail(video_path, thumb_path, logger=app.logger)
+                _generate_thumbnail(video_path, thumb_path)
 
             if not thumb_path.exists():
                 abort(404)
@@ -113,7 +109,6 @@ def create_app(video_root: Path | None = None) -> Flask:
                 last_modified=thumb_path.stat().st_mtime,
             )
         except PermissionError:
-            app.logger.exception("Permission error creating thumbnail: %s", thumb_path)
             abort(403)
 
     return app
@@ -242,7 +237,7 @@ def _thumbnail_path(app: Flask, subpath: str) -> Path:
     return app.config["THUMBNAIL_ROOT"].joinpath(*normalized.parent.parts, stem)
 
 
-def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1.5, logger: logging.Logger | None = None) -> None:
+def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1.5) -> None:
     """Generate a thumbnail using ffmpeg if available.
 
     Writes to a temporary file and then moves into place for atomicity.
@@ -272,32 +267,17 @@ def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1
             "-frames:v",
             "1",
             "-vf",
-            # Avoid shell quoting issues by not embedding quotes
-            "scale=min(480,iw):-2",
+            "scale='min(480,iw)':-2",
             "-q:v",
             "3",
             str(tmp_path),
         ]
-        try:
-            subprocess.run(cmd, check=True, capture_output=True)
-        except subprocess.CalledProcessError as e:
-            if logger:
-                logger.error("ffmpeg failed: %s", e.stderr.decode(errors="ignore") if e.stderr else str(e))
-            raise
+        subprocess.run(cmd, check=True)
 
         # Ensure parent exists (should already) then move into place
         thumb_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path.replace(thumb_path)
-    except FileNotFoundError as e:
-        if logger:
-            logger.error("ffmpeg executable not found: %s", e)
-        # ffmpeg missing
-        try:
-            if tmp_path.exists():
-                tmp_path.unlink()
-        except OSError:
-            pass
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         # ffmpeg failed or not installed; best effort: clean temp and skip
         try:
             if tmp_path.exists():
