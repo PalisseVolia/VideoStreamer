@@ -1,4 +1,6 @@
 videos/*
+.venv
+base
 !videos/.gitkeep
 __pycache__/
 *.pyc
