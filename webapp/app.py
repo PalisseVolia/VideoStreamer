@@ -80,8 +80,10 @@ def create_app(video_root: Path | None = None) -> Flask:
     @app.route("/thumb/<path:subpath>")
     def thumbnail(subpath: str) -> Response:
         """Serve or generate a cached thumbnail for the given video subpath."""
+        app.logger.info("Thumbnail request: %s", subpath)
         video_path = _resolve_subpath(app, subpath)
         if not video_path.exists() or not video_path.is_file() or not _is_video(video_path):
+            app.logger.warning("Thumbnail video not found or not video: %s", video_path)
             abort(404)
 
         thumb_path = _thumbnail_path(app, subpath)
@@ -102,7 +104,14 @@ def create_app(video_root: Path | None = None) -> Flask:
                 _generate_thumbnail(video_path, thumb_path, logger=app.logger)
 
             if not thumb_path.exists():
+                app.logger.error("Thumbnail generation failed, file missing: %s", thumb_path)
                 abort(404)
+
+            try:
+                size = thumb_path.stat().st_size
+            except OSError:
+                size = -1
+            app.logger.info("Serving thumbnail %s (%d bytes)", thumb_path, size)
 
             return send_file(
                 thumb_path,
@@ -295,6 +304,15 @@ def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1
         # Ensure parent exists (should already) then move into place
         thumb_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path.replace(thumb_path)
+        if logger:
+            try:
+                logger.info(
+                    "Thumbnail written: %s (%d bytes)",
+                    thumb_path,
+                    thumb_path.stat().st_size,
+                )
+            except OSError:
+                logger.info("Thumbnail written: %s", thumb_path)
     except FileNotFoundError as e:
         if logger:
             logger.error("ffmpeg executable not found: %s", e)
@@ -311,6 +329,14 @@ def _generate_thumbnail(video_path: Path, thumb_path: Path, *, second: float = 1
                 tmp_path.unlink()
         except OSError:
             pass
+    except Exception:
+        # Catch-all to avoid leaving temporary files behind
+        try:
+            if tmp_path.exists():
+                tmp_path.unlink()
+        except OSError:
+            pass
+        raise
 
 
 app = create_app()
