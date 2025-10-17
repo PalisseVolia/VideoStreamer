@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Video Library</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <header>
+      <h1>Video Library</h1>
+      {% if current_rel %}
+      <nav>
+        <a href="{{ url_for('browse', path='') }}">Root</a>
+        {% if parent_rel is not none %}
+          &raquo; <a href="{{ url_for('browse', path=parent_rel) }}">Up</a>
+        {% endif %}
+        <span class="path">/{{ current_rel }}</span>
+      </nav>
+      {% else %}
+      <nav><span class="path">/</span></nav>
+      {% endif %}
+    </header>
+
+    <main>
+      <section>
+        <h2>Folders</h2>
+        {% if dirs %}
+        <ul class="list">
+          {% for name, rel in dirs %}
+            <li class="dir">
+              <a href="{{ url_for('browse', path=rel) }}">{{ name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">No subfolders.</p>
+        {% endif %}
+      </section>
+
+      <section>
+        <h2>Videos</h2>
+        {% if videos %}
+        <ul class="list">
+          {% for name, rel in videos %}
+            <li class="file">
+              <a href="{{ url_for('watch', rel=rel) }}">{{ name }}</a>
+              <a class="small" href="{{ url_for('video', rel=rel) }}" title="Direct link">direct</a>
+            </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="muted">No videos found here.</p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>
+

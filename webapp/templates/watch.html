@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ filename }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <header>
+      <h1>{{ filename }}</h1>
+      <nav>
+        <a href="{{ url_for('browse') }}">Back to Library</a>
+      </nav>
+    </header>
+    <main>
+      <div class="player">
+        <video id="video" controls preload="metadata" playsinline style="max-width: 100%" src="{{ url_for('video', rel=rel) }}#t=0.1" type="{{ mime }}">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+      <p>
+        <a href="{{ url_for('video', rel=rel) }}" download>Download</a>
+      </p>
+    </main>
+  </body>
+</html>
